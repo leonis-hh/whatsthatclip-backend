@@ -1,13 +1,8 @@
 package com.whatsthatclip.backend.dto;
 
+import lombok.Data;
+
+@Data
 public class AnalyzeRequest {
     private String videoUrl;
-
-    public void setVideoUrl(String videoUrl) {
-        this.videoUrl = videoUrl;
-    }
-
-    public String getVideoUrl () {
-        return videoUrl;
-    }
 }
