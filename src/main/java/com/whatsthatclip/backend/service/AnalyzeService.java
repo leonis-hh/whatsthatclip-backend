@@ -7,6 +7,7 @@ import com.whatsthatclip.backend.repository.SearchHistoryRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class AnalyzeService {
@@ -37,5 +38,9 @@ public class AnalyzeService {
         response.setMessage("Recieved URL: " + videoUrl );
         saveSearch(videoUrl,title,type,year,overview,posterUrl);
         return response;
+    }
+
+    public List<SearchHistory> getHistory () {
+        return repository.findAllByOrderBySearchedAtDesc();
     }
 }

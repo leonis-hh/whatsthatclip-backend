@@ -6,3 +6,5 @@ Content-Type: application/json
   "videoUrl": "https://tiktok.com/some-video"
 }
 ###
+
+GET http://localhost:8080/api/history
