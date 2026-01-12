@@ -31,6 +31,7 @@ public class SearchHistory {
     private String type;
     private String year;
     private LocalDateTime searchedAt;
+    @Column(length = 2000)
     private String overview;
     private String posterUrl;
 
