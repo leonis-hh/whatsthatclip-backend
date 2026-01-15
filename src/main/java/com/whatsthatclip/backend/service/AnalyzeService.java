@@ -11,10 +11,17 @@ import com.whatsthatclip.backend.tmdb.TmdbTvSearchResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -24,6 +31,8 @@ public class AnalyzeService {
 
     @Value("${tmdb.api.key}")
     private String apiKey;
+    @Value("${gemini.api.key}")
+    private String geminiApiKey;
 
     public AnalyzeService(SearchHistoryRepository repository) {
         this.repository = repository;
@@ -31,6 +40,12 @@ public class AnalyzeService {
 
     public AnalyzeResponse analyze(AnalyzeRequest request) {
         String videoUrl = request.getVideoUrl();
+        if (videoUrl.startsWith("http")) {
+            AnalyzeResponse response = new AnalyzeResponse();
+            response.setMessage("Video processing coming soon: " + videoUrl);
+            return response;
+        }
+
         TmdbSearchResponse movieResults = searchMovie(videoUrl);
         TmdbTvSearchResponse tvResults = searchTv(videoUrl);
 
@@ -60,6 +75,72 @@ public class AnalyzeService {
         }
 
         return buildFinalResponse(title, type, date, overview, posterPath, videoUrl);
+    }
+
+    private String geminiFramesAnalyzation (List<String> framePaths) {
+
+    }
+
+    private String downloadVideo(String url) throws IOException {
+        try {
+            String tempDir = System.getProperty("java.io.tmpdir");
+            String fileName = "video_" + System.currentTimeMillis() + ".mp4";
+            String outputPath = tempDir + "/" + fileName;
+            ProcessBuilder pb = new ProcessBuilder("yt-dlp", "-o", outputPath, url);
+            Process p = pb.start();
+            p.waitFor();
+
+            return outputPath;
+
+        } catch (InterruptedException e) {
+            return null;
+
+        }
+
+    }
+
+    private List<String> extractFrames (String videoPath) {
+        try {
+            String tempDir = System.getProperty("java.io.tmpdir");
+            String newDir = tempDir + "/frames_" + System.currentTimeMillis();
+            File folder = new File(newDir);
+            folder.mkdir();
+            double videoLength = getVideoLength(videoPath);
+            double interval = videoLength/4;
+            List<String> outputPaths = new ArrayList<>();
+            for (int i = 0; i < 5; i++) {
+                double timestamp = i * interval;
+                String outputPath = newDir + "/frame_" + i + ".jpg";
+                ProcessBuilder pb = new ProcessBuilder(
+                        "ffmpeg", "-ss", String.valueOf(timestamp), "-i", videoPath,
+                        "-frames:v", "1", outputPath
+                );
+                Process p = pb.start();
+                p.waitFor();
+                outputPaths.add(outputPath);
+            }
+            return outputPaths;
+
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private double getVideoLength(String videoPath) throws IOException {
+        try {
+            ProcessBuilder pb = new ProcessBuilder(
+                    "ffprobe", "-v", "error", "-show_entries", "format=duration",
+                    "-of", "default=noprint_wrappers=1:nokey=1", videoPath
+            );
+            Process p = pb.start();
+            p.waitFor();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+            String lengthStr = reader.readLine();
+            double length= Double.parseDouble(lengthStr);
+            return length;
+        } catch (InterruptedException e) {
+            return -1;
+        }
     }
 
     private TmdbMovieResult getTopMovie(TmdbSearchResponse response) {
@@ -109,6 +190,7 @@ public class AnalyzeService {
         String url = "https://api.themoviedb.org/3/search/tv?api_key=" + apiKey + "&query=" + encodedQuery;
         return restTemplate.getForObject(url, TmdbTvSearchResponse.class);
     }
+
 
     public List<SearchHistory> getHistory() {
         return repository.findAllByOrderBySearchedAtDesc();
