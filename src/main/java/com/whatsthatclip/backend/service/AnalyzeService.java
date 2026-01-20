@@ -13,6 +13,7 @@ import com.whatsthatclip.backend.tmdb.TmdbTvSearchResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import tools.jackson.databind.ObjectMapper;
 
 
 import java.io.BufferedReader;
@@ -30,6 +31,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class AnalyzeService {
@@ -47,62 +49,65 @@ public class AnalyzeService {
 
     public AnalyzeResponse analyze(AnalyzeRequest request) {
         String videoUrl = request.getVideoUrl();
-        if (videoUrl.startsWith("http")) {
             try {
                 String result = downloadVideo(videoUrl);
                 if (result == null) {
-                    AnalyzeResponse response = new AnalyzeResponse();
-                    response.setMessage("Failed to download video");
-                    return response;
+                    return errorResponse("Failed to download video");
                 }
 
                 List<String> videoPaths = extractFrames(result);
                 if (videoPaths == null || videoPaths.isEmpty()) {
-                    AnalyzeResponse response = new AnalyzeResponse();
-                    response.setMessage("Failed to extract frames. Video path: " + result);
-                    return response;
+                    return errorResponse("Failed to extract frames. Video path: " + result);
                 }
                 String geminiText = geminiFramesAnalyzation(videoPaths);
-                AnalyzeResponse response = new AnalyzeResponse();
-                response.setMessage("Gemini said: " + geminiText);
-                return response;
+                ObjectMapper mapper = new ObjectMapper();
+                Map<String, Object> geminiResult = mapper.readValue(geminiText, Map.class);
+                String title = (String) geminiResult.get("title");
+                if ("UNCERTAIN".equals(title)) {
+                    return errorResponse("We were unable to identify, we will be working on providing a solution soon");
+                }
+
+                System.out.println("Gemini identified: " + title);
+                TmdbSearchResponse movieResults = searchMovie(title);
+                TmdbTvSearchResponse tvResults = searchTv(title);
+
+                TmdbMovieResult movie = getTopMovie(movieResults);
+                TmdbTvResult tv = getTopTv(tvResults);
+
+                if (movie == null && tv == null) {
+                    return errorResponse("No results found");
+                }
+
+                String finalTitle, type, date, overview, posterPath;
+
+                if (movie != null && (tv == null || movie.getPopularity() > tv.getPopularity())) {
+                    finalTitle = movie.getTitle();
+                    type = "Movie";
+                    date = movie.getRelease_date();
+                    overview = movie.getOverview();
+                    posterPath = movie.getPoster_path();
+                } else {
+                    finalTitle = tv.getName();
+                    type = "TV Show";
+                    date = tv.getFirst_air_date();
+                    overview = tv.getOverview();
+                    posterPath = tv.getPoster_path();
+                }
+
+                return buildFinalResponse(finalTitle, type, date, overview, posterPath, videoUrl);
+
+
             } catch (IOException e) {
-                AnalyzeResponse response = new AnalyzeResponse();
-                response.setMessage("There was an error processing the video " + videoUrl);
-                return response;
+                return errorResponse("There was an error processing the video " + videoUrl);
             }
 
-        }
 
-        TmdbSearchResponse movieResults = searchMovie(videoUrl);
-        TmdbTvSearchResponse tvResults = searchTv(videoUrl);
+    }
 
-        TmdbMovieResult movie = getTopMovie(movieResults);
-        TmdbTvResult tv = getTopTv(tvResults);
-
-        if (movie == null && tv == null) {
-            AnalyzeResponse response = new AnalyzeResponse();
-            response.setMessage("No results found");
-            return response;
-        }
-
-        String title, type, date, overview, posterPath;
-
-        if (movie != null && (tv == null || movie.getPopularity() > tv.getPopularity())) {
-            title = movie.getTitle();
-            type = "Movie";
-            date = movie.getRelease_date();
-            overview = movie.getOverview();
-            posterPath = movie.getPoster_path();
-        } else {
-            title = tv.getName();
-            type = "TV Show";
-            date = tv.getFirst_air_date();
-            overview = tv.getOverview();
-            posterPath = tv.getPoster_path();
-        }
-
-        return buildFinalResponse(title, type, date, overview, posterPath, videoUrl);
+    private AnalyzeResponse errorResponse(String message) {
+        AnalyzeResponse response = new AnalyzeResponse();
+        response.setMessage(message);
+        return response;
     }
 
 
@@ -231,7 +236,7 @@ public class AnalyzeService {
                 .build();
 
         GenerateContentResponse response = client.models.generateContent(
-                "gemini-3-pro-preview",
+                "gemini-3-flash-preview",
                 content,
                 config
         );

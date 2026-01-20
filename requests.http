@@ -4,7 +4,7 @@ POST http://localhost:8080/api/analyze
 Content-Type: application/json
 
 {
-  "videoUrl": "https://vt.tiktok.com/ZSaYHKtNT/"
+  "videoUrl": "https://vt.tiktok.com/ZSa2MjBrN/"
 }
 ###
 
