@@ -1,9 +1,10 @@
 ###
+# @timeout 600
 POST http://localhost:8080/api/analyze
 Content-Type: application/json
 
 {
-  "videoUrl": "https://www.instagram.com/reel/DIHKNm_RcD0/?igsh=MTU2cDE1ZXhidGZnMg%3D%3D"
+  "videoUrl": "https://vt.tiktok.com/ZSaYHKtNT/"
 }
 ###
 

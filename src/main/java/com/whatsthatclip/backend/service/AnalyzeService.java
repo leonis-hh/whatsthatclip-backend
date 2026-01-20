@@ -1,20 +1,19 @@
 package com.whatsthatclip.backend.service;
 
+import com.google.genai.Client;
+import com.google.genai.types.*;
 import com.whatsthatclip.backend.dto.AnalyzeRequest;
 import com.whatsthatclip.backend.dto.AnalyzeResponse;
 import com.whatsthatclip.backend.entity.SearchHistory;
-import com.whatsthatclip.backend.gemini.*;
 import com.whatsthatclip.backend.repository.SearchHistoryRepository;
 import com.whatsthatclip.backend.tmdb.TmdbMovieResult;
 import com.whatsthatclip.backend.tmdb.TmdbSearchResponse;
 import com.whatsthatclip.backend.tmdb.TmdbTvResult;
 import com.whatsthatclip.backend.tmdb.TmdbTvSearchResponse;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
+
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -24,7 +23,10 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -32,7 +34,7 @@ import java.util.List;
 @Service
 public class AnalyzeService {
     private SearchHistoryRepository repository;
-    private RestTemplate restTemplate;
+    private RestTemplate restTemplate = new RestTemplate();
 
     @Value("${tmdb.api.key}")
     private String apiKey;
@@ -41,10 +43,6 @@ public class AnalyzeService {
 
     public AnalyzeService(SearchHistoryRepository repository) {
         this.repository = repository;
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(10000);  // 10 seconds to connect
-        factory.setReadTimeout(120000);    // 120 seconds to read (2 minutes)
-        this.restTemplate = new RestTemplate(factory);
     }
 
     public AnalyzeResponse analyze(AnalyzeRequest request) {
@@ -64,8 +62,7 @@ public class AnalyzeService {
                     response.setMessage("Failed to extract frames. Video path: " + result);
                     return response;
                 }
-                GeminiResponse geminiResponse = geminiFramesAnalyzation(videoPaths);
-                String geminiText = geminiResponse.getCandidates().get(0).getContent().getParts().get(0).getText();
+                String geminiText = geminiFramesAnalyzation(videoPaths);
                 AnalyzeResponse response = new AnalyzeResponse();
                 response.setMessage("Gemini said: " + geminiText);
                 return response;
@@ -136,7 +133,7 @@ public class AnalyzeService {
             double videoLength = getVideoLength(videoPath);
             double interval = videoLength/6;
             List<String> outputPaths = new ArrayList<>();
-            for (int i = 1; i < 5; i++) {
+            for (int i = 0; i < 5; i++) {
                 double timestamp = i * interval;
                 String outputPath = newDir + "/frame_" + i + ".jpg";
                 ProcessBuilder pb = new ProcessBuilder(
@@ -171,44 +168,83 @@ public class AnalyzeService {
         }
     }
 
-    private GeminiResponse geminiFramesAnalyzation (List<String> imgPaths) throws IOException{
-        List<Part> parts = new ArrayList<>();
-        Part part1 = new Part();
-        part1.setText("These 5 frames are sequentially sampled from a single video clip. Identify the movie or TV show title and provide a confidence score.");
-        parts.add(part1);
-        for (String imgPath : imgPaths) {
-            Part part = new Part();
-            InlineData inlineData = new InlineData();
-            inlineData.setMime_type("image/jpeg");
-            inlineData.setData(imageToBase64(imgPath));
-            part.setInline_data(inlineData);
-            parts.add(part);
-
+    private String geminiFramesAnalyzation(List<String> imgPaths) throws IOException {
+        // Log what we're sending
+        System.out.println("=== GEMINI REQUEST (CANONICAL TITLE MODE) ===");
+        System.out.println("Number of frames: " + imgPaths.size());
+        for (int i = 0; i < imgPaths.size(); i++) {
+            File f = new File(imgPaths.get(i));
+            System.out.println("Frame " + (i + 1) + ": " + f.getName() + " (" + f.length() / 1024 + " KB)");
         }
-        Content content = new Content();
-        content.setParts(parts);
-        List<Content> contents = new ArrayList<>();
-        contents.add(content);
-        Part systemPart = new Part();
-        systemPart.setText("You are a movie and TV show identification microservice. Your goal is to analyze visual frames to identify the source media.\n" +
-                "Operational Rules:\n" +
-                "1. Return ONLY a valid JSON object. Do not include markdown formatting or conversational text.\n" +
-                "2. Ignore user-interface overlays (TikTok/Reels captions, likes, or watermarks).\n" +
-                "3. Analyze actors' faces, set architecture, and cinematic lighting to determine the title.\n" +
-                "4. If the frames are too generic or blurry to identify with at least 80% certainty, set the title to \"UNCERTAIN\".");
-        List<Part> systemParts = new ArrayList<>();
-        systemParts.add(systemPart);
-        SystemInstruction systemInstruction = new SystemInstruction();
-        systemInstruction.setParts(systemParts);
-        GenerationConfig generationConfig = new GenerationConfig();
-        generationConfig.setResponse_mime_type("application/json");
-        GeminiRequest geminiRequest = new GeminiRequest();
-        geminiRequest.setSystem_instruction(systemInstruction);
-        geminiRequest.setContents(contents);
-        geminiRequest.setGeneration_config(generationConfig);
-        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent?key=" + geminiApiKey;
-        return restTemplate.postForObject(url, geminiRequest, GeminiResponse.class);
+
+        Client client = Client.builder()
+                .apiKey(geminiApiKey)
+                .httpOptions(HttpOptions.builder()
+                        .timeout(300000)
+                        .build())
+                .build();
+
+        String currentDate = LocalDate.now()
+                .format(DateTimeFormatter.ofPattern("MMMM yyyy"));
+
+        List<Part> parts = new ArrayList<>();
+
+        // Critical user prompt for canonical title only
+        parts.add(Part.fromText(
+                "You are a movie/TV identification API.\n\n" +
+                        "TASK:\n" +
+                        "1. Identify the movie or TV show ONLY if it can be resolved to an OFFICIAL, RELEASED title.\n" +
+                        "2. Working titles or internal project names are FORBIDDEN.\n" +
+                        "3. Use Google Search ONLY to confirm the official title and release year, not to guess.\n" +
+                        "4. NO reasoning, NO evidence, NO speculation.\n" +
+                        "5. If the official title cannot be confidently resolved, return UNCERTAIN.\n\n" +
+                        "OUTPUT JSON ONLY:\n" +
+                        "{ \"title\": \"Exact Official Title or UNCERTAIN\", \"year\": number or null, \"confidence\": number (0-100) }"
+        ));
+
+        // Add image frames
+        for (String imgPath : imgPaths) {
+            byte[] imageBytes = Files.readAllBytes(Path.of(imgPath));
+            parts.add(Part.fromBytes(imageBytes, "image/jpeg"));
+        }
+
+        Content content = Content.fromParts(parts.toArray(new Part[0]));
+
+        GenerateContentConfig config = GenerateContentConfig.builder()
+                .responseMimeType("application/json")
+                .systemInstruction(Content.builder()
+                        .parts(List.of(Part.fromText(
+                                "System role: authoritative media identifier.\n" +
+                                        "Current date: " + currentDate + "\n\n" +
+                                        "CRITICAL RULES:\n" +
+                                        "1. Only return officially released titles.\n" +
+                                        "2. Never return working titles or inferred names.\n" +
+                                        "3. If multiple titles exist, choose the distributor-released one.\n" +
+                                        "4. Confidence above 85 requires strong certainty.\n" +
+                                        "5. If any doubt exists → return UNCERTAIN."
+                        ))).build())
+                .tools(List.of(
+                        Tool.builder()
+                                .googleSearch(GoogleSearch.builder().build())
+                                .build()
+                ))
+                .build();
+
+        GenerateContentResponse response = client.models.generateContent(
+                "gemini-3-pro-preview",
+                content,
+                config
+        );
+
+        // Log Gemini response
+        System.out.println("=== GEMINI RESPONSE ===");
+        System.out.println(response.text());
+        System.out.println("Model used: " + response.modelVersion());
+
+        return response.text();
     }
+
+
 
     private String imageToBase64 (String imgPath) throws IOException {
         byte[] bytes = Files.readAllBytes(Path.of(imgPath));
