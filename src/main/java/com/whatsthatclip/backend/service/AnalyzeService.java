@@ -61,7 +61,14 @@ public class AnalyzeService {
                 }
                 String geminiText = geminiFramesAnalyzation(videoPaths);
                 ObjectMapper mapper = new ObjectMapper();
-                Map<String, Object> geminiResult = mapper.readValue(geminiText, Map.class);
+                Map<String, Object> geminiResult;
+                if (geminiText.trim().startsWith("[")) {
+                    List<Map> geminiList = mapper.readValue(geminiText, List.class);
+                    geminiResult = geminiList.get(0);
+                } else {
+                    geminiResult = mapper.readValue(geminiText, Map.class);
+
+                }
                 String title = (String) geminiResult.get("title");
                 if ("UNCERTAIN".equals(title)) {
                     return errorResponse("We were unable to identify, we will be working on providing a solution soon");
@@ -236,7 +243,7 @@ public class AnalyzeService {
                 .build();
 
         GenerateContentResponse response = client.models.generateContent(
-                "gemini-3-flash-preview",
+                "gemini-3-pro-preview",
                 content,
                 config
         );
