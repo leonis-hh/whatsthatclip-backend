@@ -1,6 +1,7 @@
 package com.whatsthatclip.backend.controller;
 
 import com.whatsthatclip.backend.dto.AuthRequest;
+import com.whatsthatclip.backend.dto.AuthResponse;
 import com.whatsthatclip.backend.service.AuthService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -21,7 +22,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public String logIn (@RequestBody AuthRequest request) {
+    public AuthResponse logIn (@RequestBody AuthRequest request) {
         return service.logIn(request.getEmail(), request.getPassword());
     }
 

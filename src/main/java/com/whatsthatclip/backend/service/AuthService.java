@@ -1,5 +1,7 @@
 package com.whatsthatclip.backend.service;
 
+import com.whatsthatclip.backend.config.JwtUtil;
+import com.whatsthatclip.backend.dto.AuthResponse;
 import com.whatsthatclip.backend.entity.User;
 import com.whatsthatclip.backend.repository.UserRepository;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -10,10 +12,12 @@ import java.util.Optional;
 @Service
 public class AuthService {
     private UserRepository userRepository;
+    private JwtUtil jwtUtil;
     private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    public AuthService(UserRepository userRepository) {
+    public AuthService(UserRepository userRepository, JwtUtil jwtUtil) {
         this.userRepository = userRepository;
+        this.jwtUtil = jwtUtil;
     }
 
     public String signUp (String email, String password) {
@@ -29,19 +33,27 @@ public class AuthService {
         }
     }
 
-    public String logIn(String email, String password) {
+    public AuthResponse logIn(String email, String password) {
         Optional<User> optionalUser = userRepository.findByEmail(email);
+        AuthResponse response= new AuthResponse();
 
         if (!optionalUser.isPresent()) {
-            return "Your login details are invalid, please try again";
+            response.setToken(null);
+            response.setMessage("Your login details are invalid, please try again\n");
+            return response;
         }
 
         User user = optionalUser.get();
         if (!passwordEncoder.matches(password, user.getPassword())) {
-            return "Your login details are invalid, please try again";
+            response.setToken(null);
+            response.setMessage("Your login details are invalid, please try again\n");
+            return response;
         }
 
-        return "Login successful";
+        String token = jwtUtil.generateToken(email);
+        response.setToken(token);
+        response.setMessage("Login successful");
+        return response;
     }
 
 
