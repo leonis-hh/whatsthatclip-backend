@@ -5,6 +5,7 @@ import com.google.genai.types.*;
 import com.whatsthatclip.backend.dto.AnalyzeRequest;
 import com.whatsthatclip.backend.dto.AnalyzeResponse;
 import com.whatsthatclip.backend.entity.SearchHistory;
+import com.whatsthatclip.backend.entity.User;
 import com.whatsthatclip.backend.repository.SearchHistoryRepository;
 import com.whatsthatclip.backend.tmdb.TmdbMovieResult;
 import com.whatsthatclip.backend.tmdb.TmdbSearchResponse;
@@ -35,7 +36,8 @@ import java.util.Map;
 
 @Service
 public class AnalyzeService {
-    private SearchHistoryRepository repository;
+    private UserService userService;
+    private SearchHistoryService searchService;
     private RestTemplate restTemplate = new RestTemplate();
 
     @Value("${tmdb.api.key}")
@@ -43,8 +45,9 @@ public class AnalyzeService {
     @Value("${gemini.api.key}")
     private String geminiApiKey;
 
-    public AnalyzeService(SearchHistoryRepository repository) {
-        this.repository = repository;
+    public AnalyzeService(SearchHistoryService searchService, UserService userService) {
+        this.searchService = searchService;
+        this.userService = userService;
     }
 
     public AnalyzeResponse analyze(AnalyzeRequest request) {
@@ -288,16 +291,14 @@ public class AnalyzeService {
         response.setOverview(overview);
         response.setPosterUrl(posterUrl);
         response.setMessage("Received URL: " + videoUrl);
-
-        saveSearch(videoUrl, title, type, year, overview, posterUrl);
+        User currentUser = userService.getCurrentUser();
+        if (currentUser != null) {
+            searchService.saveSearch(videoUrl, title, type, year, overview, posterUrl, currentUser);
+        }
 
         return response;
     }
 
-    public SearchHistory saveSearch(String videoUrl, String title, String type, String year, String overview, String posterUrl) {
-        SearchHistory search = new SearchHistory(videoUrl, title, type, year, overview, posterUrl, LocalDateTime.now());
-        return repository.save(search);
-    }
 
     private TmdbSearchResponse searchMovie(String query) {
         String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
@@ -312,7 +313,4 @@ public class AnalyzeService {
     }
 
 
-    public List<SearchHistory> getHistory() {
-        return repository.findAllByOrderBySearchedAtDesc();
-    }
 }

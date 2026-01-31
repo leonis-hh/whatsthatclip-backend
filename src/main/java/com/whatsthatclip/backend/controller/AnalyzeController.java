@@ -24,11 +24,6 @@ public class AnalyzeController {
         return service.analyze(request);
     }
 
-    @GetMapping("/api/history")
-    public List<SearchHistory> getHistory () {
-        return service.getHistory();
-    }
-
 
 
 }

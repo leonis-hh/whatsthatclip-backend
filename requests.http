@@ -2,10 +2,13 @@
 # @timeout 600
 POST http://localhost:8080/api/analyze
 Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiaWF0IjoxNzY5ODkzOTgzLCJleHAiOjE3Njk5ODAzODN9.LkXyDy7haVfF_Yd7U-SPiKX_3UWVBs90HN87eXlurgQ
 
 {
-  "videoUrl": "https://vt.tiktok.com/ZSahLt9AP/"
+  "videoUrl": "https://vt.tiktok.com/ZSaVBop2A/"
 }
+
+
 ###
 
 POST http://localhost:8080/api/auth/login
@@ -13,5 +16,18 @@ Content-Type: application/json
 
 {
   "email": "test@example.com",
-  "password": "password13"
+  "password": "password123"
+}
+
+###
+GET http://localhost:8080/api/history
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiaWF0IjoxNzY5ODkzOTgzLCJleHAiOjE3Njk5ODAzODN9.LkXyDy7haVfF_Yd7U-SPiKX_3UWVBs90HN87eXlurgQ
+
+###
+POST http://localhost:8080/api/auth/signup
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "password123"
 }

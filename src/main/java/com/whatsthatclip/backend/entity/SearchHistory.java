@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table (name = "search_history")
 public class SearchHistory {
-    public SearchHistory(String videoUrl, String title, String type, String year, String overview, String posterUrl, LocalDateTime searchedAt) {
+    public SearchHistory(String videoUrl, String title, String type, String year, String overview, String posterUrl, LocalDateTime searchedAt, User user) {
         this.videoUrl = videoUrl;
         this.title = title;
         this.type = type;
@@ -21,6 +21,7 @@ public class SearchHistory {
         this.overview = overview;
         this.posterUrl = posterUrl;
         this.searchedAt = searchedAt;
+        this.user=user;
     }
 
     @Id
@@ -34,5 +35,7 @@ public class SearchHistory {
     @Column(length = 2000)
     private String overview;
     private String posterUrl;
+    @ManyToOne
+    private User user;
 
 }
