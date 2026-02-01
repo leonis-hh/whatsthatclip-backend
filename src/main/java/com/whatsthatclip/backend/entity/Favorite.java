@@ -12,27 +12,25 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @Entity
-@Table (name = "search_history")
-public class SearchHistory {
-    public SearchHistory(String videoUrl, String title, String type, String year, String overview, String posterUrl, LocalDateTime searchedAt, User user) {
-        this.videoUrl = videoUrl;
+@Table (name = "favorite")
+public class Favorite {
+    public Favorite (String title, String type, String year, String overview, String posterUrl, LocalDateTime savedAt, User user) {
         this.title = title;
         this.type = type;
         this.year = year;
         this.overview = overview;
         this.posterUrl = posterUrl;
-        this.searchedAt = searchedAt;
+        this.savedAt = savedAt;
         this.user=user;
     }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String videoUrl;
     private String title;
     private String type;
     private String year;
-    private LocalDateTime searchedAt;
+    private LocalDateTime savedAt;
     @Column(length = 2000)
     private String overview;
     private String posterUrl;

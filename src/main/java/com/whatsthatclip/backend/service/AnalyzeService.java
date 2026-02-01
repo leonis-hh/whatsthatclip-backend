@@ -38,16 +38,16 @@ import java.util.Map;
 public class AnalyzeService {
     private UserService userService;
     private SearchHistoryService searchService;
+    private TmdbService tmdbService;
     private RestTemplate restTemplate = new RestTemplate();
 
-    @Value("${tmdb.api.key}")
-    private String apiKey;
     @Value("${gemini.api.key}")
     private String geminiApiKey;
 
-    public AnalyzeService(SearchHistoryService searchService, UserService userService) {
+    public AnalyzeService(SearchHistoryService searchService, UserService userService, TmdbService tmdbService) {
         this.searchService = searchService;
         this.userService = userService;
+        this.tmdbService = tmdbService;
     }
 
     public AnalyzeResponse analyze(AnalyzeRequest request) {
@@ -78,8 +78,8 @@ public class AnalyzeService {
                 }
 
                 System.out.println("Gemini identified: " + title);
-                TmdbSearchResponse movieResults = searchMovie(title);
-                TmdbTvSearchResponse tvResults = searchTv(title);
+                TmdbSearchResponse movieResults = tmdbService.searchMovie(title);
+                TmdbTvSearchResponse tvResults = tmdbService.searchTv(title);
 
                 TmdbMovieResult movie = getTopMovie(movieResults);
                 TmdbTvResult tv = getTopTv(tvResults);
@@ -300,17 +300,6 @@ public class AnalyzeService {
     }
 
 
-    private TmdbSearchResponse searchMovie(String query) {
-        String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
-        String url = "https://api.themoviedb.org/3/search/movie?api_key=" + apiKey + "&query=" + encodedQuery;
-        return restTemplate.getForObject(url, TmdbSearchResponse.class);
-    }
-
-    private TmdbTvSearchResponse searchTv(String query) {
-        String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
-        String url = "https://api.themoviedb.org/3/search/tv?api_key=" + apiKey + "&query=" + encodedQuery;
-        return restTemplate.getForObject(url, TmdbTvSearchResponse.class);
-    }
 
 
 }
