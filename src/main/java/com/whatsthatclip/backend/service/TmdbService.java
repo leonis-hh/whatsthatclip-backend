@@ -28,9 +28,6 @@ public class TmdbService {
         return restTemplate.getForObject(url, TmdbTvSearchResponse.class);
     }
 
-    public TmdbSearchResponse
-
-
 
 
 }

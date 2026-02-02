@@ -12,16 +12,13 @@ import java.util.List;
 @RestController
 public class SearchHistoryController {
     private SearchHistoryService searchService;
-    private UserService userService;
 
-    public SearchHistoryController (SearchHistoryService searchService, UserService userService) {
+    public SearchHistoryController (SearchHistoryService searchService) {
         this.searchService = searchService;
-        this.userService = userService;
     }
 
     @GetMapping("/api/history")
     public List<SearchHistory> getHistory () {
-        User currentUser = userService.getCurrentUser();
-        return searchService.getHistoryForUser(currentUser);
+        return searchService.getHistoryForUser();
     }
 }

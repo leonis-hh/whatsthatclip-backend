@@ -31,3 +31,13 @@ Content-Type: application/json
   "email": "test@example.com",
   "password": "password123"
 }
+
+###
+
+GET http://localhost:8080/api/favorites
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiaWF0IjoxNzcwMDQ4OTcyLCJleHAiOjE3NzAxMzUzNzJ9.xr0pdZ_PPDpW1lH2UFQnIHehBikKbRShfXnC6_sKLhQ
+
+###
+
+GET http://localhost:8080/api/user/profile
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiaWF0IjoxNzcwMDQ4OTcyLCJleHAiOjE3NzAxMzUzNzJ9.xr0pdZ_PPDpW1lH2UFQnIHehBikKbRShfXnC6_sKLhQ

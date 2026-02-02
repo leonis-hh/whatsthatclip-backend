@@ -18,21 +18,16 @@ import java.util.List;
 @RestController
 public class FavoriteController {
     private FavoriteService favoriteService;
-    private UserService userService;
-
-    public FavoriteController (FavoriteService favoriteService, UserService userService) {
+    public FavoriteController (FavoriteService favoriteService) {
         this.favoriteService = favoriteService;
-        this.userService = userService;
     }
     @PostMapping("/api/favorites")
     public Favorite saveFavorite (@RequestBody FavoriteRequest request) {
-        User currentUser = userService.getCurrentUser();
-        return favoriteService.saveFavorite(request, currentUser);
+        return favoriteService.saveFavorite(request);
     }
 
     @GetMapping("/api/favorites")
     public List<Favorite> getFavoritesForUser () {
-            User currentUser = userService.getCurrentUser();
-            return favoriteService.getFavoritesForUser(currentUser);
+            return favoriteService.getFavoritesForUser();
     }
 }

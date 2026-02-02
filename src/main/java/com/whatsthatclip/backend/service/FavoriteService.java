@@ -13,17 +13,21 @@ import java.util.List;
 @Service
 public class FavoriteService {
     private FavoriteRepository favoriteRepository;
+    private UserService userService;
 
-    public FavoriteService(FavoriteRepository favoriteRepository) {
+    public FavoriteService(FavoriteRepository favoriteRepository, UserService userService) {
         this.favoriteRepository = favoriteRepository;
+        this.userService = userService;
     }
 
-    public Favorite saveFavorite (FavoriteRequest request, User user) {
+    public Favorite saveFavorite (FavoriteRequest request) {
+        User user = userService.getCurrentUser();
         Favorite favorite = new Favorite(request.getTitle(), request.getType(), request.getYear(), request.getOverview(), request.getPosterUrl(), LocalDateTime.now(), user);
         return favoriteRepository.save(favorite);
     }
 
-    public List<Favorite> getFavoritesForUser (User user) {
+    public List<Favorite> getFavoritesForUser () {
+        User user = userService.getCurrentUser();
         return favoriteRepository.findByUserOrderBySavedAtDesc(user);
     }
 }

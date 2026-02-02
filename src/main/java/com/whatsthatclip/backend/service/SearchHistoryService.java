@@ -11,9 +11,11 @@ import java.util.List;
 @Service
 public class SearchHistoryService {
     private SearchHistoryRepository searchRepository;
+    private UserService userService;
 
-    public SearchHistoryService (SearchHistoryRepository searchRepository) {
+    public SearchHistoryService (SearchHistoryRepository searchRepository, UserService userService) {
         this.searchRepository = searchRepository;
+        this.userService = userService;
     }
 
     public SearchHistory saveSearch(String videoUrl, String title, String type, String year, String overview, String posterUrl, User user) {
@@ -21,7 +23,8 @@ public class SearchHistoryService {
         return searchRepository.save(search);
     }
 
-    public List<SearchHistory> getHistoryForUser (User user) {
+    public List<SearchHistory> getHistoryForUser () {
+        User user = userService.getCurrentUser();
         return searchRepository.findByUserOrderBySearchedAtDesc(user);
     }
 

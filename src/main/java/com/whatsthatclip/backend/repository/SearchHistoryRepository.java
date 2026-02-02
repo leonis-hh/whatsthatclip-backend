@@ -8,4 +8,6 @@ import java.util.List;
 
 public interface SearchHistoryRepository extends JpaRepository<SearchHistory, Long> {
     List<SearchHistory> findByUserOrderBySearchedAtDesc(User user);
+    Long countByUser (User user);
+    Long countByUserAndType (User user, String type);
 }
