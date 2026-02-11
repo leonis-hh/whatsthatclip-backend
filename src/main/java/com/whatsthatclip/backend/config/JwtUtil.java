@@ -47,4 +47,13 @@ public class JwtUtil {
             return auth.getName();
         }
     }
+
+    public boolean validateToken(String token) {
+        try {
+            String email = extractEmail(token);
+            return email != null;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 }

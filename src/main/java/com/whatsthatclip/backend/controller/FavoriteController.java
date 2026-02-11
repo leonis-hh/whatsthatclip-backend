@@ -8,6 +8,7 @@ import com.whatsthatclip.backend.entity.SearchHistory;
 import com.whatsthatclip.backend.entity.User;
 import com.whatsthatclip.backend.service.FavoriteService;
 import com.whatsthatclip.backend.service.UserService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,8 +23,12 @@ public class FavoriteController {
         this.favoriteService = favoriteService;
     }
     @PostMapping("/api/favorites")
-    public Favorite saveFavorite (@RequestBody FavoriteRequest request) {
-        return favoriteService.saveFavorite(request);
+    public ResponseEntity<?> saveFavorite (@RequestBody FavoriteRequest request) {
+        try {
+            return ResponseEntity.ok(favoriteService.saveFavorite(request));
+        }  catch (Exception runTimeEx) {
+            return ResponseEntity.status(409).body("Already in favorites");
+        }
     }
 
     @GetMapping("/api/favorites")

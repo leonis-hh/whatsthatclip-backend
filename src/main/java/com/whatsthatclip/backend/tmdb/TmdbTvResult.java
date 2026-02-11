@@ -7,6 +7,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class TmdbTvResult {
+    private Integer id;
     private String name;
     private String overview;
     private String first_air_date;

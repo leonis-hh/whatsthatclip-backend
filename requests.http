@@ -39,5 +39,19 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwia
 
 ###
 
+POST http://localhost:8080/api/favorites
+Authorization: Bearer <your-token>
+Content-Type: application/json
+
+{
+  "title": "Inception",
+  "type": "Movie",
+  "year": "2010",
+  "overview": "A thief who steals corporate secrets...",
+  "posterUrl": "https://image.tmdb.org/t/p/w500/qmDpIHrmpJINaRKAfWQfftjCdT.jpg"
+}
+
+###
+
 GET http://localhost:8080/api/user/profile
 Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiaWF0IjoxNzcwMDQ4OTcyLCJleHAiOjE3NzAxMzUzNzJ9.xr0pdZ_PPDpW1lH2UFQnIHehBikKbRShfXnC6_sKLhQ

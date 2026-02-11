@@ -10,4 +10,5 @@ public interface FavoriteRepository extends JpaRepository<Favorite, Long> {
     List<Favorite> findByUserOrderBySavedAtDesc(User user);
     Long countByUser (User user);
     Long countByUserAndType (User user, String type);
+    boolean existsByUserAndPosterUrl(User user, String posterUrl);
 }

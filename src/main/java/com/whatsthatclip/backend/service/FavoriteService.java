@@ -22,8 +22,13 @@ public class FavoriteService {
 
     public Favorite saveFavorite (FavoriteRequest request) {
         User user = userService.getCurrentUser();
-        Favorite favorite = new Favorite(request.getTitle(), request.getType(), request.getYear(), request.getOverview(), request.getPosterUrl(), LocalDateTime.now(), user);
-        return favoriteRepository.save(favorite);
+        if (!favoriteRepository.existsByUserAndPosterUrl(user, request.getPosterUrl())) {
+            Favorite favorite = new Favorite(request.getTitle(), request.getType(), request.getYear(), request.getOverview(), request.getPosterUrl(), LocalDateTime.now(), user);
+            return favoriteRepository.save(favorite);
+        } else {
+            throw new RuntimeException("Already in favorites");
+        }
+
     }
 
     public List<Favorite> getFavoritesForUser () {
